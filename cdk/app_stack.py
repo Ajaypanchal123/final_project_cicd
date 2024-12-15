@@ -1,37 +1,37 @@
 from aws_cdk import (
-    Stack,
+    core,
     aws_s3 as s3,
+    aws_ec2 as ec2,
     aws_lambda as _lambda,
     aws_apigateway as apigateway,
+    aws_iam as iam,
     aws_s3_deployment as s3_deployment,
 )
-from constructs import Construct
 
-class AppStack(Stack):
-    def __init__(self, scope: Construct, id: str, **kwargs) -> None:
+class WebAppStack(core.Stack):
+    def __init__(self, scope: core.Construct, id: str, **kwargs) -> None:
         super().__init__(scope, id, **kwargs)
 
-        # S3 bucket for frontend
-        bucket = s3.Bucket(self, "FrontendBucket", 
-                           website_index_document="index.html", 
-                           public_read_access=True)
+        # S3 bucket for hosting the frontend
+        bucket = s3.Bucket(self, "WebAppBucket", website_index_document="index.html", website_error_document="error.html")
 
-        # Deploy frontend to S3 bucket
-        s3_deployment.BucketDeployment(self, "DeployFrontend", 
-            sources=[s3_deployment.Source.asset("./app/templates")],
-            destination_bucket=bucket)
-
-        # Lambda function for backend (Flask app)
-        backend_function = _lambda.Function(
-            self, "BackendFunction",
-            runtime=_lambda.Runtime.PYTHON_3_9,
-            handler="app.lambda_handler",
-            code=_lambda.Code.from_asset("../app")
+        # Lambda function for backend
+        backend_lambda = _lambda.Function(self, "BackendFunction",
+            runtime=_lambda.Runtime.PYTHON_3_8,
+            handler="app.api",  # This points to the function in app.py
+            code=_lambda.Code.from_asset("app"),  # Folder where app.py is located
         )
 
-        # API Gateway to expose Lambda function
-        api = apigateway.LambdaRestApi(self, "APIGateway", handler=backend_function)
+        # API Gateway to trigger Lambda
+        api = apigateway.LambdaRestApi(self, "WebApi",
+            handler=backend_lambda,
+        )
 
-        # Outputs to show the URLs of S3 and API Gateway
-        self.bucket = bucket
-        self.api = api
+        # Deployment of frontend content to S3
+        s3_deployment.BucketDeployment(self, "DeployWebsite",
+            sources=[s3_deployment.Source.asset("app/templates")],
+            destination_bucket=bucket,
+        )
+
+        # Output the URL of the S3 bucket
+        core.CfnOutput(self, "WebsiteURL", value=bucket.bucket_website_url)

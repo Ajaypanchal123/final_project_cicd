@@ -1,42 +1,22 @@
-# Final Project - CI/CD
+# Comprehensive CI/CD Pipeline for Web Application Deployment
 
-This project demonstrates how to deploy a simple Flask application using AWS CDK and integrate it with AWS services such as S3, Lambda, and API Gateway.
+## Description
+This project implements a CI/CD pipeline to automate the deployment of a simple web application using AWS CDK. The application consists of a frontend (HTML) and a backend (Python Flask API). The pipeline is triggered on code pushes to the GitHub repository and automates the deployment of AWS infrastructure (S3, Lambda, API Gateway).
 
-## File Structure
+## Infrastructure
+- S3 bucket for static site hosting.
+- Lambda function for backend API.
+- API Gateway to serve the backend.
 
-- `app/`: Contains the Flask app and frontend (HTML) files.
-- `cdk/`: AWS CDK stack configuration.
-- `tests/`: Unit tests for the Flask app.
-- `Dockerfile`: Containerizes the Flask app.
-- `requirements.txt`: Lists the dependencies for the project.
-- `pipeline.yaml`: AWS CodePipeline configuration for CI/CD.
-- `buildspec.yml`: AWS CodeBuild configuration for building the app.
-- `README.md`: Project documentation.
+## CI/CD Pipeline
+- **GitHub Actions** is used for automating the build, test, and deploy process.
+- Stages: Source → Build → Test → Deploy.
 
-## Steps to Run the Application
+## Deployment
+1. Ensure AWS credentials are configured in GitHub Secrets.
+2. Push code to the `main` branch.
+3. The pipeline will automatically deploy the application.
 
-1. **Set Up the Environment:**
-   - Install AWS CDK and dependencies using the following:
-     ```bash
-     npm install -g aws-cdk
-     pip install -r requirements.txt
-     ```
+## Testing
+Tests for the API routes are located in the `tests/` folder.
 
-2. **Deploy Using AWS CDK:**
-   - Run the following command to bootstrap and deploy the CDK stack:
-     ```bash
-     cdk deploy --profile <your-aws-profile>
-     ```
-
-3. **Run the Flask App Locally (Optional):**
-   - If you want to test the Flask app locally, run:
-     ```bash
-     python app/app.py
-     ```
-
-4. **CI/CD Pipeline:**
-   - The `pipeline.yaml` and `buildspec.yml` files will automatically trigger the build and deployment on code push to the `main` branch in GitHub.
-
-## Author
-
-Ajay Panchal
