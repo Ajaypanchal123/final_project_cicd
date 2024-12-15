@@ -1,37 +1,95 @@
 from aws_cdk import (
-    core,
     aws_s3 as s3,
     aws_ec2 as ec2,
+    aws_iam as iam,
     aws_lambda as _lambda,
     aws_apigateway as apigateway,
-    aws_iam as iam,
-    aws_s3_deployment as s3_deployment,
+    Stack,
+    CfnOutput,
+    CfnParameter
 )
+from constructs import Construct
+import hashlib
 
-class WebAppStack(core.Stack):
-    def __init__(self, scope: core.Construct, id: str, **kwargs) -> None:
+
+class AppStack(Stack):
+    def __init__(self, scope: Construct, id: str, **kwargs):
         super().__init__(scope, id, **kwargs)
 
-        # S3 bucket for hosting the frontend
-        bucket = s3.Bucket(self, "WebAppBucket", website_index_document="index.html", website_error_document="error.html")
+        # Generate a unique bucket name using stack name and region
+        unique_bucket_name = f"{self.stack_name}-staging-{hashlib.md5(self.region.encode()).hexdigest()}"
 
-        # Lambda function for backend
-        backend_lambda = _lambda.Function(self, "BackendFunction",
-            runtime=_lambda.Runtime.PYTHON_3_8,
-            handler="app.api",  # This points to the function in app.py
-            code=_lambda.Code.from_asset("app"),  # Folder where app.py is located
+        # S3 bucket for frontend with secure public access
+        frontend_bucket = s3.Bucket(
+            self,
+            "FrontendBucket",
+            website_index_document="index.html",
+            public_read_access=False,
+            block_public_access=s3.BlockPublicAccess.BLOCK_ALL,
+            removal_policy=s3.RemovalPolicy.DESTROY,
+            auto_delete_objects=True,
         )
 
-        # API Gateway to trigger Lambda
-        api = apigateway.LambdaRestApi(self, "WebApi",
-            handler=backend_lambda,
+        # Grant permissions for public-read access via a policy
+        frontend_bucket.add_to_resource_policy(
+            iam.PolicyStatement(
+                actions=["s3:GetObject"],
+                resources=[f"{frontend_bucket.bucket_arn}/*"],
+                principals=[iam.AnyPrincipal()],
+            )
         )
 
-        # Deployment of frontend content to S3
-        s3_deployment.BucketDeployment(self, "DeployWebsite",
-            sources=[s3_deployment.Source.asset("app/templates")],
-            destination_bucket=bucket,
+        # VPC for backend
+        vpc = ec2.Vpc(self, "MyVpc", max_azs=2)
+
+        # Security group for EC2 instance
+        security_group = ec2.SecurityGroup(
+            self,
+            "InstanceSecurityGroup",
+            vpc=vpc,
+            allow_all_outbound=True,
+        )
+        security_group.add_ingress_rule(
+            ec2.Peer.any_ipv4(), ec2.Port.tcp(22), "Allow SSH access"
         )
 
-        # Output the URL of the S3 bucket
-        core.CfnOutput(self, "WebsiteURL", value=bucket.bucket_website_url)
+        # EC2 instance for backend
+        instance = ec2.Instance(
+            self,
+            "MyInstance",
+            instance_type=ec2.InstanceType("t2.micro"),
+            machine_image=ec2.MachineImage.latest_amazon_linux(),
+            vpc=vpc,
+            security_group=security_group,
+        )
+
+        # Lambda function for API backend
+        backend_lambda = _lambda.Function(
+            self,
+            "BackendLambda",
+            runtime=_lambda.Runtime.PYTHON_3_9,
+            handler="app.lambda_handler",
+            code=_lambda.Code.from_asset("app"),
+        )
+
+        # API Gateway for the Lambda
+        api = apigateway.LambdaRestApi(self, "MyApi", handler=backend_lambda)
+
+        # S3 bucket for staging with a unique name
+        staging_bucket = s3.Bucket(
+            self,
+            "StagingBucket",
+            versioned=True,  # Optional but useful for staging
+            removal_policy=s3.RemovalPolicy.DESTROY,  # Cleanup when stack is deleted
+            auto_delete_objects=True,  # Automatically delete objects when the bucket is removed
+            bucket_name=unique_bucket_name,  # Unique name to avoid conflicts
+        )
+
+        # Outputs
+        self.add_outputs(frontend_bucket, instance, api, staging_bucket)
+
+    def add_outputs(self, frontend_bucket, instance, api, staging_bucket):
+        CfnOutput(self, "FrontendBucketURL", value=frontend_bucket.bucket_website_url)
+        CfnOutput(self, "InstancePublicIP", value=instance.instance_public_ip)
+        CfnOutput(self, "ApiEndpoint", value=api.url)
+        CfnOutput(self, "StagingBucketName", value=staging_bucket.bucket_name)

@@ -4,40 +4,36 @@ on:
   push:
     branches:
       - main
-      - development
 
 jobs:
-  build:
+  build-deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
+    - name: Checkout code
+      uses: actions/checkout@v3
 
-      - name: Set up Python
-        uses: actions/setup-python@v2
-        with:
-          python-version: '3.8'
+    - name: Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.9"
 
-      - name: Install dependencies
-        run: |
-          pip install -r requirements.txt
+    - name: Install dependencies
+      run: |
+        pip install -r app/requirements.txt
+        pip install -r tests/requirements-dev.txt
 
-      - name: Run tests
-        run: |
-          pytest tests/
+    - name: Run tests
+      run: pytest tests/
 
-      - name: Set up AWS credentials
-        uses: aws-actions/configure-aws-credentials@v1
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: 'us-east-1'  # Replace with your desired region
+    - name: Install AWS CDK
+      run: npm install -g aws-cdk
 
-      - name: Configure AWS region
-        run: |
-          aws configure set region us-east-1  # Replace with your region
-          
-      - name: Deploy application
-        run: |
-          cdk deploy --require-approval never
+    - name: Deploy with CDK
+      run: |
+        cdk bootstrap
+        cdk deploy --require-approval never
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        AWS_DEFAULT_REGION: "us-east-1"

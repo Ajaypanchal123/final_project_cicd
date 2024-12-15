@@ -1,22 +1,30 @@
-# Comprehensive CI/CD Pipeline for Web Application Deployment
+# Comprehensive CI/CD Pipeline for Application Deployment
 
 ## Description
-This project implements a CI/CD pipeline to automate the deployment of a simple web application using AWS CDK. The application consists of a frontend (HTML) and a backend (Python Flask API). The pipeline is triggered on code pushes to the GitHub repository and automates the deployment of AWS infrastructure (S3, Lambda, API Gateway).
+This project demonstrates a CI/CD pipeline for deploying a web application and its associated AWS infrastructure.
 
-## Infrastructure
-- S3 bucket for static site hosting.
-- Lambda function for backend API.
-- API Gateway to serve the backend.
+## Features
+- A Flask web application with frontend and API.
+- Infrastructure defined using AWS CDK.
+- CI/CD pipeline using GitHub Actions.
 
-## CI/CD Pipeline
-- **GitHub Actions** is used for automating the build, test, and deploy process.
-- Stages: Source → Build → Test → Deploy.
+## Steps to Run Locally
+1. Install dependencies:
 
-## Deployment
-1. Ensure AWS credentials are configured in GitHub Secrets.
-2. Push code to the `main` branch.
-3. The pipeline will automatically deploy the application.
-
-## Testing
-Tests for the API routes are located in the `tests/` folder.
-
+final-project-cicd/
+├── .github/
+│   └── workflows/
+│       └── ci-cd-pipeline.yml
+├── app/
+│   ├── templates/
+│   │   └── index.html
+│   ├── app.py
+├── cdk/
+│   ├── __init__.py
+│   ├── app_stack.py
+├── requirements.txt
+├── requirements-dev.txt
+├── cdk.json
+├── tests/
+│   └── test_app.py
+└── README.md

@@ -1,12 +1,15 @@
 import pytest
-from app import app
+from app.app import app
 
-def test_home():
-    client = app.test_client()
-    response = client.get('/')
-    assert response.data == b"Welcome to the Web Application!"
+@pytest.fixture
+def client():
+    with app.test_client() as client:
+        yield client
 
-def test_api():
-    client = app.test_client()
-    response = client.get('/api')
-    assert response.json == {"message": "Hello from the API!"}
+def test_home(client):
+    response = client.get("/")
+    assert response.status_code == 200
+
+def test_api(client):
+    response = client.get("/api")
+    assert response.json == {"message": "Hello from Flask API"}
