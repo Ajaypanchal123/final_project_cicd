@@ -1,0 +1,23 @@
+version: '1'
+resources:
+  - name: Source
+    type: GitHubSource
+    properties:
+      owner: <your-github-username>
+      repo: <your-repository-name>
+      branch: main
+      OAuthToken: <your-oauth-token> # Securely store your GitHub OAuth token
+  - name: Build
+    type: CodeBuild
+    properties:
+      computeType: BUILD_GENERAL1_SMALL
+      environment:
+        image: aws/codebuild/standard:5.0
+        type: LINUX_CONTAINER
+      buildspec: buildspec.yml
+  - name: Deploy
+    type: CloudFormation
+    properties:
+      stackName: FlaskAppStack
+      templatePath: 'BuildArtifact/FlaskAppTemplate.yaml'
+      capabilities: CAPABILITY_IAM
