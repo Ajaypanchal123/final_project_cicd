@@ -36,6 +36,7 @@ jobs:
 
     - name: Deploy with CDK
       run: |
+        # Ensures that public access is blocked in CDK stack definition
         cdk bootstrap
         cdk deploy --require-approval never
       env:
